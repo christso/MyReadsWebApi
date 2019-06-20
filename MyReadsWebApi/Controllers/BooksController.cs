@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.InMemory;
+using MyReadsWebApi.Data;
 using MyReadsWebApi.Models;
 
 namespace MyReadsWebApi.Controllers
@@ -13,66 +15,44 @@ namespace MyReadsWebApi.Controllers
     [ApiController]
     public class BooksController : ControllerBase
     {
-        private readonly DataContext _context;
-    
-        public BooksController(DataContext context)
+        private readonly IUserRepository _userRepository;
+
+        public BooksController(IUserRepository userRepository)
         {
-            _context = context;
+            _userRepository = userRepository;
+        }
 
-            if (_context.Books.Count() == 0)
-            {
-                var book1 = new Book()
-                {
-                    Title = "The Linux Command Line",
-                    Shelf = "read",
-                    Id = "nggnmAEACAAJ",
-                    Authors = new List<Author>()
-                    {
-                        new Author() { Name = "William E. Shotts, Jr." }
-                    }
-                };
-                _context.Books.Add(book1);
-
-                var book2 = new Book()
-                {
-                    Title = "Learning Web Development with React and Bootstrap",
-                    Shelf = "currentlyReading",
-                    Id = "sJf1vQAACAAJ",
-                    Authors = new List<Author>
-                    {
-                        new Author() { Name = "Harmeet Singh" },
-                        new Author() { Name = "Mehul Bhatt" }
-                    }
-                };
-                _context.Books.Add(book2);
-
-                var book3 = new Book()
-                {
-                    Title = "The Cuckoo's Calling",
-                    Shelf = "wantToRead",
-                    Id = "evuwdDLfAyYC",
-                    Authors = new List<Author>
-                    {
-                        new Author() { Name = "Robert Galbraith" }
-                    }
-                };
-                _context.Books.Add(book3);
-
-                _context.SaveChanges();
-            }
+        [HttpPost("default")]
+        public ActionResult PostDefault()
+        {
+            return Ok();
         }
 
         // GET api/values
         [HttpGet]
         public ActionResult<IEnumerable<Book>> Get()
         {
-            return _context.Books.ToList();
+            var user = GetUser();
+            if (user == null) 
+            {
+                var defaultUser = _userRepository.FindOne("default");
+
+                user = new User()
+                {
+                    Id = GetToken(),
+                    Books = defaultUser.Books
+                };
+
+                _userRepository.AddUserAsync(user).GetAwaiter().GetResult();
+            }
+
+            return Ok(user.Books);
         }
 
         public User GetUser()
         {
             var token = GetToken();
-            var user = _context.Users.Where(u => u.Id == token).FirstOrDefault();
+            var user = _userRepository.FindOne(token);
             return user;
         }
 
