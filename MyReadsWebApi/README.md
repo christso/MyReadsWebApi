@@ -1,0 +1,1 @@
+﻿Sample project demonstrating EF core mult-level many-to-many relationships with Web API.

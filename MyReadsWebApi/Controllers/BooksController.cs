@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.InMemory;
 using MyReadsWebApi.Data;
 using MyReadsWebApi.Models;
+using MyReadsWebApi.ViewModels;
 
 namespace MyReadsWebApi.Controllers
 {
@@ -30,23 +31,18 @@ namespace MyReadsWebApi.Controllers
 
         // GET api/values
         [HttpGet]
-        public ActionResult<IEnumerable<Book>> Get()
+        public ActionResult<IEnumerable<BookViewModel>> Get()
         {
             var user = GetUser();
+            var userId = GetToken();
             if (user == null) 
             {
-                var defaultUser = _userRepository.FindOne("default");
-
-                user = new User()
-                {
-                    Id = GetToken(),
-                    BooksLink = defaultUser.BooksLink
-                };
-
-                _userRepository.AddUserAsync(user).GetAwaiter().GetResult();
+                _userRepository.CreateDefaultUser(userId);
+                user = _userRepository.FindOne(userId);
             }
 
-            return Ok(user.BooksLink);
+            var userVm = UserRepositoryHelper.Map(user);
+            return Ok(userVm.Books);
         }
 
         public User GetUser()

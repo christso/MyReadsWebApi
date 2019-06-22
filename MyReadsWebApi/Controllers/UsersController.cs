@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.InMemory;
 using MyReadsWebApi.Data;
 using MyReadsWebApi.Models;
+using MyReadsWebApi.ViewModels;
 
 namespace MyReadsWebApi.Controllers
 {
@@ -36,6 +37,19 @@ namespace MyReadsWebApi.Controllers
             }
         }
 
+        [HttpDelete("{userId}")]
+        public ActionResult<User> Delete(string userId)
+        {
+            try
+            {
+                return Ok(_userRepository.Delete(userId));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
         [HttpPost]
         public ActionResult<User> Post([FromBody] User user)
         {
@@ -51,12 +65,16 @@ namespace MyReadsWebApi.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<User>> Get()
+        public ActionResult<IEnumerable<UserViewModel>> Get()
         {
             try
             {
-                var result = _userRepository.GetAllUsers();
-                return Ok(result);
+                var users = _userRepository.GetAllUsers();
+                var userVms = users.Select((user, index) =>
+                {
+                    return UserRepositoryHelper.Map(user);
+                }).ToList();
+                return Ok(userVms);
             }
             catch (Exception ex)
             {
