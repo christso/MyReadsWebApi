@@ -53,7 +53,15 @@ namespace MyReadsWebApi.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<User>> Get()
         {
-            return Ok(_userRepository.GetAllUsers());
+            try
+            {
+                var result = _userRepository.GetAllUsers();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
         }
     }
 }

@@ -40,13 +40,13 @@ namespace MyReadsWebApi.Controllers
                 user = new User()
                 {
                     Id = GetToken(),
-                    Books = defaultUser.Books
+                    BooksLink = defaultUser.BooksLink
                 };
 
                 _userRepository.AddUserAsync(user).GetAwaiter().GetResult();
             }
 
-            return Ok(user.Books);
+            return Ok(user.BooksLink);
         }
 
         public User GetUser()

@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MyReadsWebApi.Data;
+using MyReadsWebApi.Models;
 
 namespace MyReadsWebApi
 {
@@ -19,7 +21,10 @@ namespace MyReadsWebApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<IUserRepository, UserRepository>();
+            var connection = @"Server=(localdb)\mssqllocaldb;Database=MyReadsDb;Trusted_Connection=True;ConnectRetryCount=0";
+            services.AddDbContext<LibraryContext>
+                (options => options.UseSqlServer(connection));
+            services.AddTransient<IUserRepository, EfUserRepository>();
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
         }
 

@@ -1,4 +1,5 @@
-﻿using MyReadsWebApi.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using MyReadsWebApi.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,76 +14,119 @@ namespace MyReadsWebApi.Data
         User FindOne(string id);
         void AddDefaultData();
     }
-    public class UserRepository : IUserRepository
-    {
-        public List<User> Users = new List<User>();
 
-        public UserRepository()
+    public class EfUserRepository : IUserRepository
+    {
+        private LibraryContext _context;
+        public EfUserRepository(LibraryContext context)
         {
+            _context = context;
             this.AddDefaultData();
+        }
+
+        public async Task AddUserAsync(User user)
+        {
+            await _context.AddAsync(user);
+            await _context.SaveChangesAsync();
         }
 
         public User FindOne(string id)
         {
-            return Users.Where(x => x.Id == id).FirstOrDefault();
-        }
-
-        public Task AddUserAsync(User user)
-        {
-            return Task.Run(() => Users.Add(user));
+            return _context.Users.Find(id);
         }
 
         public IEnumerable<User> GetAllUsers()
         {
-            return Users;
+            return _context.Users
+                .Include(user => user.BooksLink)
+                .ThenInclude(bookLink => bookLink.Book)
+                .ThenInclude(book => book.AuthorsLink)
+                .ThenInclude(authorLink => authorLink.Author)
+                .ToList();
         }
 
         public void AddDefaultData()
         {
-            if (Users.Find(x => x.Id == "default") == null)
+            var users = _context.Users;
+            var user = users.Find(UserRepositoryHelper.DefaultId);
+            if (user == null)
             {
-                var user = new User()
-                {
-                    Id = "default",
-                    Books = new List<Book>()
-                    {
-                        new Book()
-                        {
-                            Title = "The Linux Command Line",
-                            Shelf = "read",
-                            Id = "nggnmAEACAAJ",
-                            Authors = new List<Author>()
-                            {
-                                new Author() { Name = "William E. Shotts, Jr." }
-                            }
-                        },
-                        new Book()
-                        {
-                            Title = "Learning Web Development with React and Bootstrap",
-                            Shelf = "currentlyReading",
-                            Id = "sJf1vQAACAAJ",
-                            Authors = new List<Author>
-                            {
-                                new Author() { Name = "Harmeet Singh" },
-                                new Author() { Name = "Mehul Bhatt" }
-                            }
-                        },
-                        new Book()
-                        {
-                            Title = "The Cuckoo's Calling",
-                            Shelf = "wantToRead",
-                            Id = "evuwdDLfAyYC",
-                            Authors = new List<Author>
-                            {
-                                new Author() { Name = "Robert Galbraith" }
-                            }
-                        }
-
-                    }
-                };
-
-                Users.Add(user);
+                UserRepositoryHelper.CreateDefaultUser(_context);
             }
+        }   
+    }
+
+    public class UserRepositoryHelper
+    {
+        public const string DefaultId = "default";
+
+        public static User CreateDefaultUser(LibraryContext context)
+        {
+            var authors = new List<Author>()
+            {
+                new Author("William E. Shotts, Jr."),
+                new Author("Harmeet Singh"),
+                new Author("Mehul Bhatt"),
+                new Author("Robert Galbraith")
+            };
+            context.Authors.AddRange(authors);
+
+            var book1 = new Book()
+            {
+                Title = "The Linux Command Line",
+                Shelf = "read",
+                Id = "nggnmAEACAAJ"
+            };
+            book1.AuthorsLink = new List<BookAuthor>()
+            {
+                new BookAuthor() { Author = authors[0], Book = book1 }
+            };
+
+            var book2 = new Book()
+            {
+                Title = "Learning Web Development with React and Bootstrap",
+                Shelf = "currentlyReading",
+                Id = "sJf1vQAACAAJ"
+            };
+            book2.AuthorsLink = new List<BookAuthor>
+            {
+                new BookAuthor() { Author = authors[1], Book = book2 },
+                new BookAuthor() { Author = authors[2], Book = book2 }
+            };
+
+            var book3 = new Book()
+            {
+                Title = "The Cuckoo's Calling",
+                Shelf = "wantToRead",
+                Id = "evuwdDLfAyYC"
+            };
+            book3.AuthorsLink = new List<BookAuthor>
+            {
+                new BookAuthor() { Author = authors[3], Book = book3 }
+            };
+            var books = new List<Book>()
+            {
+                book1,
+                book2,
+                book3
+            };
+            context.Books.AddRange(books);
+
+            var user = new User()
+            {
+                Id = DefaultId
+            };
+            user.BooksLink = books.Select((book, index) =>
+            {
+                return new UserBook()
+                {
+                    Book = book,
+                    User = user
+                };
+            }).ToList();
+            context.Users.Add(user);
+            context.SaveChanges();
+            return user;
         }
     }
 }
