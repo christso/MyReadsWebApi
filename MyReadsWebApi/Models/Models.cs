@@ -34,7 +34,7 @@ namespace MyReadsWebApi.Models
         public string BookId { get; set; }
         public string UserId { get; set; }
 
-        [JsonIgnore]
+        //[JsonIgnore]
         public Book Book { get; set; }
         [JsonIgnore]
         public User User { get; set; }
